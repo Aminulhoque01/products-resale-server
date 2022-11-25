@@ -39,9 +39,7 @@ async function run() {
         app.get('/product-categories/:id', async (req, res) => {
             const id = req.params.id;
             const query = {category_id: id};
-            // const same = {}
             const category = await categoriesProductCollection.find(query).toArray();
-
             res.send(category);
         })
 
@@ -68,8 +66,33 @@ async function run() {
             const result = await bookingCollection.insertOne(booking);
             res.send(result);
         });
-        
 
+        app.get('/bookings', async(req,res)=>{
+            const email=req.query.email;
+            const query= {email:email};
+            const booking = await bookingCollection.find(query).toArray();
+            res.send(booking);
+        })
+
+
+        app.post('/addProducts', async(req,res)=>{
+            const addProduct = req.body;
+            const result = await categoriesProductCollection.insertOne(addProduct)
+            res.send(result);
+        });
+
+        app.get('/addProducts', async(req,res)=>{
+           const query={};
+            const result = await categoriesProductCollection.find(query).toArray();
+            res.send(result);
+        })
+        
+        app.delete('/addProducts/:id', async(req,res)=>{
+            const id = req.params.id;
+            const filter= {_id:ObjectId(id)};
+            const result = await categoriesProductCollection.deleteOne(filter);
+            res.send(result)
+        })
     }
     finally {
 
