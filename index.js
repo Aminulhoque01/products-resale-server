@@ -9,12 +9,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// data mil 
-// const categories= require('./data/categories.json');
-// const product= require('./data/products.json');
-
-
-
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.8qoxdwe.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -24,6 +18,8 @@ async function run() {
     try {
         const categoriesProductCollection = client.db('resaleProduct').collection('category');
         const ProductCollection = client.db('resaleProduct').collection('product');
+
+        
         const bookingCollection = client.db('resaleProduct').collection('booking');
 
 
