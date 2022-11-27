@@ -21,6 +21,7 @@ async function run() {
         const categoriesProductCollection = client.db('resaleProduct').collection('category');
         const ProductCollection = client.db('resaleProduct').collection('product');
         const bookingCollection = client.db('resaleProduct').collection('booking');
+        const usersCollection = client.db('resaleProduct').collection('users');
         const paymentsCollection = client.db('resaleProduct').collection('payment');
 
 
@@ -62,13 +63,13 @@ async function run() {
             console.log(booking);
 
             const query ={
-                itemsPrice: parseInt(booking.itemsPrice),
+                itemsName: booking.itemsName,
                 email:booking.email,
             }
             alreadyBooked= await bookingCollection.find(query).toArray();
 
-            if(alreadyBooked){
-                const message = `You already have a booking this ${booking.itemsPrice}`;
+            if(alreadyBooked.length){
+                const message = `You already have a booking this ${booking.itemsName}`;
                 return res.send({acknowledged:false, message})
             }
             const result = await bookingCollection.insertOne(booking);
@@ -80,17 +81,16 @@ async function run() {
         app.get('/bookings/:id', async(req,res)=>{
             const id = req.params.id;
             const query = {_id:ObjectId(id)}
-            const booking = await bookingCollection.find(query);
+            const booking = await bookingCollection.findOne(query);
             res.send(booking)
         });
 
        
 
         app.post('/create-payment-intent', async(req,res)=>{
+
             const booking = req.body;
-            
-            const price = parseInt(booking.itemsPrice);
-            
+            const price = booking.itemsPrice;
             const amount= price*100;
            
             const paymentIntent = await stripe.paymentIntents.create({
@@ -103,6 +103,7 @@ async function run() {
             res.send({
                 clientSecret: paymentIntent.client_secret,
             });
+
         });
 
         app.post('/payments', async(req,res)=>{
@@ -148,7 +149,15 @@ async function run() {
             const filter= {_id:ObjectId(id)};
             const result = await categoriesProductCollection.deleteOne(filter);
             res.send(result)
+        });
+
+        app.post('/users',async(req,res)=>{
+            const user = req.body;
+            const result = await usersCollection.insertOne(user);
+            res.send(result);
         })
+
+
     }
     finally {
 
