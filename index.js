@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
 const port = process.env.PROT || 5000;
 const app = express();
 
@@ -18,9 +20,8 @@ async function run() {
     try {
         const categoriesProductCollection = client.db('resaleProduct').collection('category');
         const ProductCollection = client.db('resaleProduct').collection('product');
-
-        
         const bookingCollection = client.db('resaleProduct').collection('booking');
+        const paymentsCollection = client.db('resaleProduct').collection('payment');
 
 
         app.get('/product-categories', async (req, res) => {
@@ -59,9 +60,68 @@ async function run() {
         app.post('/bookings', async(req,res)=>{
             const booking= req.body;
             console.log(booking);
+
+            const query ={
+                itemsPrice: parseInt(booking.itemsPrice),
+                email:booking.email,
+            }
+            alreadyBooked= await bookingCollection.find(query).toArray();
+
+            if(alreadyBooked){
+                const message = `You already have a booking this ${booking.itemsPrice}`;
+                return res.send({acknowledged:false, message})
+            }
             const result = await bookingCollection.insertOne(booking);
             res.send(result);
         });
+
+
+
+        app.get('/bookings/:id', async(req,res)=>{
+            const id = req.params.id;
+            const query = {_id:ObjectId(id)}
+            const booking = await bookingCollection.find(query);
+            res.send(booking)
+        });
+
+       
+
+        app.post('/create-payment-intent', async(req,res)=>{
+            const booking = req.body;
+            
+            const price = parseInt(booking.itemsPrice);
+            
+            const amount= price*100;
+           
+            const paymentIntent = await stripe.paymentIntents.create({
+                currency:'usd',
+                amount: amount,
+                "payment_method_types":[
+                    "card"
+                ]
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        });
+
+        app.post('/payments', async(req,res)=>{
+            const payment = req.body;
+            const result = await paymentsCollection.insertOne(payment);
+            const id = payment.bookingId
+            const filter = {_id:ObjectId(id)};
+            const updateDoc= {
+                $set:{
+                    paid:true,
+                    transactionId:payment.transactionId
+
+                }
+            }
+            const updateResult = await bookingCollection.updateOne(filter,updateDoc)
+            res.send(result);
+        })
+
+
 
         app.get('/bookings', async(req,res)=>{
             const email=req.query.email;
