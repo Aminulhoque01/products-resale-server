@@ -143,14 +143,14 @@ async function run() {
 
 
 
-        app.get('/bookings',verifyJWT, async(req,res)=>{
+        app.get('/bookings', async(req,res)=>{
             const email=req.query.email;
-
-            const decodedEmail = req.decoded.email;
+            // verifyJWT,
+            // const decodedEmail = req.decoded.email;
             
-            if(email !== decodedEmail){
-                return res.status(403).send({message:'forbidden access'})
-            }
+            // if(email !== decodedEmail){
+            //     return res.status(403).send({message:'forbidden access'})
+            // }
 
             const query= {email:email};
             const booking = await bookingCollection.find(query).toArray();
@@ -194,28 +194,45 @@ async function run() {
             const query ={};
             const users = await usersCollection.find(query).toArray();
             res.send(users);
-        })
+        });
 
+
+       
         app.post('/users',async(req,res)=>{
             const user = req.body;
             const result = await usersCollection.insertOne(user);
             res.send(result);
         });
 
-        app.put('/users/admin/:id',   async(req,res)=>{
+        app.get('/users/admin/:email', async(req,res)=>{
+            const email = req.params.email;
+           const query = {email}
+            const user = await usersCollection.findOne(query);
+            res.send({isAdmin: user?.rol === 'admin'})
+        })
+
+
+
+        app.put('/users/admin/:id',async(req,res)=>{
+            const id = req.params.id;
+            const filter = { _id:ObjectId(id)}
+            const options = { upsert:true };
+            const updateDoc={
+                $set:{
+                    rol :'admin'
+                }
+            }
+            const result = await usersCollection.updateOne(filter,updateDoc,options);
+            res.send(result);
+        })
+
+        app.put('/users/:id',  async(req,res)=>{
             
-            // const decodedEmail = req.body.email;
-            // const query = {email:decodedEmail};
-            // const user = await usersCollection.findOne(query);
-           
-            // if(user?.role !== 'verified'){
-            //     return res.status(403).send({message:'forbidden access'})
-            // }
             
             
             const id = req.params.id;
             const filter = { _id:ObjectId(id)}
-            const options = {upsert:true};
+            const options = { upsert:true };
             const updateDoc={
                 $set:{
                     role:'verified'
@@ -225,15 +242,16 @@ async function run() {
             res.send(result);
         });
 
-        app.delete('/users/admin/:id', async(req,res)=>{
+        app.delete('/users/:id', async(req,res)=>{
+            
             const id = req.params.id;
-            const query = { _id:Object(id) } ;
-            const result = await usersCollection.deleteOne(query);
+            console.log(id);
+            const filter = { _id:ObjectId(id) } ;
+            const result = await usersCollection.deleteOne(filter);
             res.send(result);
             console.log(result);
         })
-
-      
+       
 
 
     }
