@@ -20,14 +20,14 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 
 function verifyJWT(req,res,next){
-    const authHeader = req.header.authorization;
+    const authHeader = req.headers.authorization;
     if(!authHeader){
         return res.status(401).send('unauthorized access');
     }
-    const token = authHeader.split(' ')[1];
+    const token =authHeader.split(' ')[1];
     
-    jwt.verify(token,process.env.ACCESS_TOKEN, function(err , decoded){
-        if(error){
+    jwt.verify(token, process.env.ACCESS_TOKEN, function(err , decoded){
+        if(err){
             return res.status(403).send({message:'forbidden access'})
         }
         req.decoded = decoded;
@@ -143,14 +143,14 @@ async function run() {
 
 
 
-        app.get('/bookings', async(req,res)=>{
+        app.get('/bookings',verifyJWT, async(req,res)=>{
             const email=req.query.email;
 
-            // const decodedEmail = req.decoded.email;
-            // verifyJWT,
-            // if(email !== decodedEmail){
-            //     return res.status(403).send({message:'forbidden access'})
-            // }
+            const decodedEmail = req.decoded.email;
+            
+            if(email !== decodedEmail){
+                return res.status(403).send({message:'forbidden access'})
+            }
 
             const query= {email:email};
             const booking = await bookingCollection.find(query).toArray();
@@ -186,7 +186,7 @@ async function run() {
                 return res.send({accessToken:token});
 
             }
-            console.log(user);
+            // console.log(user);
             res.status(403).send({accessToken:' '})
         });
 
@@ -202,15 +202,15 @@ async function run() {
             res.send(result);
         });
 
-        app.put('/users/admin/:id', verifyJWT, async(req,res)=>{
+        app.put('/users/admin/:id',   async(req,res)=>{
             
-            const decodedEmail = req.body.email;
-            const query = {email:decodedEmail};
-            const user = await usersCollection.findOne(query);
-
-            if(user?.role !== 'admin'){
-                return res.status(403).send({message:'forbidden access'})
-            }
+            // const decodedEmail = req.body.email;
+            // const query = {email:decodedEmail};
+            // const user = await usersCollection.findOne(query);
+           
+            // if(user?.role !== 'verified'){
+            //     return res.status(403).send({message:'forbidden access'})
+            // }
             
             
             const id = req.params.id;
@@ -227,10 +227,13 @@ async function run() {
 
         app.delete('/users/admin/:id', async(req,res)=>{
             const id = req.params.id;
-            const filter = { _id:Object(id) } ;
-            const result = await usersCollection.deleteOne(filter);
+            const query = { _id:Object(id) } ;
+            const result = await usersCollection.deleteOne(query);
             res.send(result);
+            console.log(result);
         })
+
+      
 
 
     }
